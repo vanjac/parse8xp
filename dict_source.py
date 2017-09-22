@@ -67,7 +67,7 @@ def base(): #Base TI84 language
         # Linux distros seem capable of using it.
         # Comment the following line out if you don't
         # want the program to do that.
-        (b'?', '\r\n', ''),
+        #(b'?', '\r\n', ''),
         (b'@', ' and ', 'ValueA and ValueB (Logical AND operator)'),
         (b'A', 'A', ''),
         (b'B', 'B', ''),

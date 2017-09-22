@@ -47,9 +47,6 @@ def twoByte(number):
     # Encode a number in little-endian, 0x1234 -> 34 12
     return struct.pack("<H", number & 0xffff)
 
-def stripCRLF(data):
-    return data.replace(b"\n", b"").replace(b"\r", b"")
-
 if b"" != "":
     # Python 3
     byte_to_hex = lambda num: num
@@ -63,7 +60,7 @@ def decompile(source8xp, destination):
     try:
         readFile=open(source8xp, "rb")
         try:
-            writeFile=open(destination, "wb")
+            writeFile=open(destination, "w")
             try:
                 # Load program name, protection type, and comment
                 readFile.seek(11, 0)
@@ -71,13 +68,13 @@ def decompile(source8xp, destination):
                 readFile.seek(59, 0)
                 protect = readFile.read(1) != b"\x05"
                 name = readFile.read(8)
-                writeFile.write(name + b"\n")
+                writeFile.write(name.decode().strip('\x00') + "\n")
                 if not protect:
-                    writeFile.write(b"not ")
-                writeFile.write(b"protected\n")
-                writeFile.write(comment + b"\n")
+                    writeFile.write("not ")
+                writeFile.write("protected\n")
+                writeFile.write(comment.decode().strip('\x00') + "\n")
                 _logger.info("Loading %s...", name)
-                _logger.info("Program is %sprotected", protect and "not " or "")
+                _logger.info("Program is %sprotected", "" if protect else "not ")
                 _logger.info("%s", comment)
                 # Find data's end
                 readFile.seek(-3, 2)
@@ -94,7 +91,7 @@ def decompile(source8xp, destination):
                         readLen -= 1
                         current = readFile.read(readLen)
                     if current in tDict:
-                        writeFile.write(tDict[current])
+                        writeFile.write(tDict[current].decode())
                         #_logger.debug("%s", tDict[current])
                     else:
                         writeFile.write("&@%s" % current)
@@ -119,49 +116,43 @@ def recompile(source, destination8xp):
     tDict = loadDict(dictType="compile")
     maxKeyLen = longestKey(tDict)
     try:
-        readFile=open(source, "rb")
+        readFile=open(source, "r")
         try:
             writeFile=open(destination8xp, "wb")
             try:
                 # NOTE: we cannot simply write to file.
                 # We have to find the checksum & other crap later
-                writeBuffer = []
-                # Learn program length
-                readFile.seek(-1, 2)
-                fileLength = readFile.tell()
-                # Skip program name & protection value for now
-                readFile.seek(0, 0)
-                readFile.readline()
-                readFile.readline()
-                readFile.readline()
+                writeBuffer = bytes()
+                name = readFile.readline()
+                protected = not readFile.readline().strip().startswith('not')
+                comment = readFile.readline()
+                program = readFile.read()
+
                 # Write the opening code
-                writeFile.write(b"**TI83F*\x1a\x0a\x00")
+                writeFile.write(b"**TI83F*\x1a\x0a\x0a")
                 # Read program meat
                 lineNum = 4 # line numbers started from 1, and there were 3 lines beforehand.
-                while readFile.tell() <= fileLength: # Ignore the last 2 bytes (checksum)
-                    readLen = 1 + fileLength - readFile.tell()
-                    readLen = min([maxKeyLen, readLen])
-                    current = readFile.read(readLen)
+                index = 0
+                while True: # Ignore the last 2 bytes (checksum)
+                    current = program[index:index + maxKeyLen]
+                    if current == "":
+                        break
                       # Try each possible key for the next few characters
-                    while (readLen > 1 and not current in tDict):
-                        readFile.seek(-1*readLen, 1)
-                        readLen -= 1
-                        current = readFile.read(readLen)
-                    if current in tDict:
-                        writeBuffer.append(tDict[current])
-                        if (current == b"\n") or (current == "\r\n"):
+                    while (len(current) > 1 and not current.encode() in tDict):
+                        current = current[:-1]
+                    if current.encode() in tDict:
+                        writeBuffer += tDict[current.encode()]
+                        if current == "\n":
                             lineNum += 1
                             # count line numbers
-                    elif current == b"&":
+                    elif current == "&":
                         # The ampersand is the escape sequence character.
                         # If we got here, then:
                         # A) This is the escape sequence &@, indicating that
                         #    the next character should be translated literally.
-                        readFile.seek(-1, 1)
-                        current = readFile.read(2)
-                        if current == b"&@":
-                            current = readFile.read(1)
-                            writeBuffer.append(current)
+                        if program[index + 1] == "@":
+                            writeBuffer.append(program[index + 2])
+                            current = program[index:index + 3]
                         # B) This is an invalid escape sequence. Let's announce that.
                         else:
                             _logger.warning("%s is an invalid escape sequence on line %d", current, lineNum)
@@ -170,39 +161,42 @@ def recompile(source, destination8xp):
                         # A character is unreadable!
                         _logger.warning("%s not found on line %d", current, lineNum)
                         writeBuffer.append(b"ERROR " + current)
-                programMeat = b"".join(writeBuffer)
+                    index += len(current)
                 # Comment Code
-                readFile.seek(0, 0)
-                readFile.readline()
-                readFile.readline()
-                writeFile.write(stripCRLF(readFile.readline()).ljust(42)[:42])
+                writeFile.write(comment.strip().encode().ljust(42, b"\x00")[:42])
                 # After the comment comes the length of program + 19 in two bytes.
                 # Note that this would crash if the program were longer than
                 # 65536 characters. However, that's more than twice the TI84+ SILVER's
                 # memory. Should the limit be exceeded, we've got MUCH BIGGER problems.
-                writeFile.write(twoByte(len(programMeat) + 19))
+                writeFile.write(twoByte(len(writeBuffer) + 19))
+
+                # The checksum includes *everything* after this
+                # (this is a correction from the old version of this script)
+                checksum = 0
+                def addBytes(b):
+                    nonlocal checksum
+                    writeFile.write(b)
+                    checksum += sum([byte_to_hex(c) for c in b])
+
                 # Two more unknown characters
-                writeFile.write(b"\x0d\x00")
+                addBytes(b"\x0d\x00")
                 # Another length for... some... reason...
-                writeFile.write(twoByte(len(programMeat) + 2))
+                addBytes(twoByte(len(writeBuffer) + 2))
                 # Now the protection code
                 # Protected means it can't be edited once on the calculator
-                readFile.seek(0, 0)
-                readFile.readline()
-                writeFile.write(stripCRLF(readFile.readline())==b"protected\n" and b"\x06" or b"\x05")
+                addBytes(protected and b"\x06" or b"\x05")
                 # Now the name
-                readFile.seek(0, 0)
-                writeFile.write(stripCRLF(readFile.readline()).ljust(8)[:8])
+                addBytes(name.strip().encode().ljust(8, b"\x00")[:8])
                 # Two nulls
-                writeFile.write(b"\x00\x00")
+                addBytes(b"\x00\x00")
                 # The length again... same as a few bytes before
-                writeFile.write(twoByte(len(programMeat) + 2))
+                addBytes(twoByte(len(writeBuffer) + 2))
                 # And... a different way to write the length of the program.
-                writeFile.write(twoByte(len(programMeat)))
+                addBytes(twoByte(len(writeBuffer)))
                 # Now the program
-                writeFile.write(programMeat)
+                addBytes(writeBuffer)
                 # Checksum - sum of all characters in program
-                writeFile.write(twoByte(sum([byte_to_hex(c) for c in programMeat])))
+                writeFile.write(twoByte(checksum))
                 _logger.info("%s successfully compiled as %s", source, destination8xp)
             except IOError as e:
                 _logger.error("A file error occurred during translation: %s", e)
