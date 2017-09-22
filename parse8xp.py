@@ -31,13 +31,12 @@ def loadDict (dictType = "compile", options = dict_source.index()):
     for li in dict_source.base():
         #Get the base values
         d[li[ki]] = li[vi]
-    if b"" != "":
-        # Convert the string literals from unicode to bytes in Python 3.
-        # (index 1 are the textual tokens)
-        if ki == 1:
-            d = dict((k.encode("utf8"), v) for k, v in d.items())
-        if vi == 1:
-            d = dict((k, v.encode("utf8")) for k, v in d.items())
+    # Convert the string literals from unicode to bytes
+    # (index 1 are the textual tokens)
+    if ki == 1:
+        d = dict((k.encode("utf8"), v) for k, v in d.items())
+    if vi == 1:
+        d = dict((k, v.encode("utf8")) for k, v in d.items())
     return d
 
 def longestKey(dictionary):
@@ -46,12 +45,6 @@ def longestKey(dictionary):
 def twoByte(number):
     # Encode a number in little-endian, 0x1234 -> 34 12
     return struct.pack("<H", number & 0xffff)
-
-if b"" != "":
-    # Python 3
-    byte_to_hex = lambda num: num
-else:
-    byte_to_hex = lambda c: ord(c)
 
 def decompile(source8xp, destination):
     """Decompile a .8xp file, save that to destination file"""
@@ -176,7 +169,7 @@ def recompile(source, destination8xp):
                 def addBytes(b):
                     nonlocal checksum
                     writeFile.write(b)
-                    checksum += sum([byte_to_hex(c) for c in b])
+                    checksum += sum(b)
 
                 # Two more unknown characters
                 addBytes(b"\x0d\x00")
