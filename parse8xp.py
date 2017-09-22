@@ -299,9 +299,10 @@ def spellcheck(filename):
 
 def gethelp(command, results=20):
     """Print help with a command to terminal"""
+    commandEncode = command.encode()
     tDict = loadDict(dictType="help")
-    if command in tDict:
-        print(tDict[command] or "No help available")
+    if commandEncode in tDict:
+        print(tDict[commandEncode] or "No help available")
     else:
         print("%s not found" % command)
         rawize = lambda s: "".join([c for c in s.lower() if ord(c) > 47])
@@ -311,10 +312,10 @@ def gethelp(command, results=20):
             partmatch = lambda s:(raw in rawize(s)) or (command in s)
         matches = 0 # Count the number of matches made so far
         for k, v in tDict.items():
-            if partmatch(k):
+            if partmatch(k.decode()):
                 matches += 1
                 if matches <= results:
-                    print("  %s: %s" % (k, v or "No help available"))
+                    print("  %s: %s" % (k.decode(), v or "No help available"))
         if matches > results:
             print("  *** %s results omitted" % (matches - results))
 
