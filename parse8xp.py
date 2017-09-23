@@ -181,7 +181,7 @@ def recompile(source, destination8xp):
                 addBytes(protected and b"\x06" or b"\x05")
                 # Now the name
                 addBytes(name.strip().encode().ljust(8, b"\x00")[:8])
-                # Two nulls
+                # Two nulls (TODO: not always? see MUSIC.8xp)
                 addBytes(b"\x00\x00")
                 # The length again... same as a few bytes before
                 addBytes(twoByte(len(writeBuffer) + 2))
