@@ -165,6 +165,10 @@ def base(): #Base TI84 language
         (b'a\x08', 'GDB9', ''),
         (b'a\t', 'GDB0', ''),
         (b'b!', '&eta', 'The Greek letter eta'),
+        (b'c\x0A', 'Xmin', ''),
+        (b'c\x0B', 'Xmax', ''),
+        (b'c\x0C', 'Ymin', ''),
+        (b'c\x0D', 'Ymax', ''),
         (b'd', 'Radian', 'Set Radian mode'),
         (b'e', 'Degree', 'Set Degree mode'),
         (b'f', 'Normal', 'Normal notation'),
@@ -678,4 +682,5 @@ def ti84plus(): #Tokens used in the TI84+ and TI84s
         (b'\xef\x13', 'invT(', ''),
         (b'\xef\x14', 'X^2GOF-Test(', ''),
         (b'\xef\x15', 'LinRegTInt', ''),
-        (b'\xef\x16', 'Manual-Fit', '')]
+        (b'\xef\x16', 'Manual-Fit', ''),
+        (b'\xef\x32', 'remainder(', '')]
