@@ -87,7 +87,7 @@ def decompile(source8xp, destination):
                         writeFile.write(tDict[current].decode())
                         #_logger.debug("%s", tDict[current])
                     else:
-                        writeFile.write("&@%s" % current)
+                        writeFile.write("&@%s" % current.decode())
                         _logger.warning("character %x not found!", ord(current))
                 _logger.info("%s successfully decompiled as %s", source8xp, destination)
             except IOError as e:
@@ -144,7 +144,7 @@ def recompile(source, destination8xp):
                         # A) This is the escape sequence &@, indicating that
                         #    the next character should be translated literally.
                         if program[index + 1] == "@":
-                            writeBuffer.append(program[index + 2])
+                            writeBuffer += bytes([ord(program[index + 2])])
                             current = program[index:index + 3]
                         # B) This is an invalid escape sequence. Let's announce that.
                         else:
