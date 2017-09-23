@@ -66,9 +66,9 @@ def decompile(source8xp, destination):
                     writeFile.write("not ")
                 writeFile.write("protected\n")
                 writeFile.write(comment.decode().strip('\x00') + "\n")
-                _logger.info("Loading %s...", name)
+                _logger.info("Loading %s...", name.decode().strip('\x00'))
                 _logger.info("Program is %sprotected", "" if protect else "not ")
-                _logger.info("%s", comment)
+                _logger.info("%s", comment.decode().strip('\x00'))
                 # Find data's end
                 readFile.seek(-3, 2)
                 fileLength = readFile.tell()
