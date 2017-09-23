@@ -165,6 +165,8 @@ def base(): #Base TI84 language
         (b'a\x08', 'GDB9', ''),
         (b'a\t', 'GDB0', ''),
         (b'b!', '&eta', 'The Greek letter eta'),
+        (b'c\x02', 'Xscl', ''),
+        (b'c\x03', 'Yscl', ''),
         (b'c\x0A', 'Xmin', ''),
         (b'c\x0B', 'Xmax', ''),
         (b'c\x0C', 'Ymin', ''),
