@@ -87,8 +87,9 @@ def decompile(source8xp, destination):
                         writeFile.write(tDict[current].decode())
                         #_logger.debug("%s", tDict[current])
                     else:
+                        _logger.warning("character 0x%x not found! at 0x%x",
+                                        ord(current), readFile.tell())
                         writeFile.write("&@%s" % current.decode())
-                        _logger.warning("character %x not found!", ord(current))
                 _logger.info("%s successfully decompiled as %s", source8xp, destination)
             except IOError as e:
                 _logger.error("A file error occurred during translation: %s", e)
